@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "679745127677",
+    "project_id": "kmmwebrtc",
+    "storage_bucket": "kmmwebrtc.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:679745127677:android:39a8c022a3b8aba9eb6a94",
+        "android_client_info": {
+          "package_name": "com.jeffrwatts.kmmwebrtc.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "679745127677-71ijjc2l0p14s00fqf1vtk1m2daj0ada.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDIfRhgDUonImdzknfPGAIkwDFInbwSE68"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "679745127677-71ijjc2l0p14s00fqf1vtk1m2daj0ada.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

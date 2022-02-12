@@ -8,9 +8,14 @@ import android.view.ViewGroup
 import android.widget.Button
 import com.jeffrwatts.kmmwebrtc.Greeting
 import android.widget.TextView
+import android.widget.Toast
+import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.*
 import com.jeffrwatts.kmmwebrtc.Dog
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,13 +35,21 @@ class MainActivity : AppCompatActivity() {
         recyclerViewDogs.adapter = dogAdapter
 
         buttonRefresh.setOnClickListener {
-            dogViewModel.getDogs().observe(this) { dogs ->
+            dogViewModel.getDogsFromFirebase().observe(this) { dogs ->
                 dogAdapter.submitList(dogs)
             }
         }
 
-        dogViewModel.getDogs().observe(this) { dogs ->
+        dogViewModel.getDogsFromApi().observe(this) { dogs ->
             dogAdapter.submitList(dogs)
+        }
+
+        lifecycleScope.launch {
+            dogViewModel.observeDog(Dog("dog1")).collect() { breed ->
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, breed, Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 }
