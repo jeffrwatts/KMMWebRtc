@@ -7,10 +7,10 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             listView()
-            .navigationBarTitle("Dogs")
+            .navigationBarTitle("Dogs Api")
             .navigationBarItems(trailing:
-                Button("Reload") {
-                self.viewModel.loadDogs()
+                Button("With Firebase") {
+                self.viewModel.loadDogsFirebase()
             })
         }
     }
@@ -38,15 +38,28 @@ extension ContentView {
     
     class ViewModel: ObservableObject {
         let dogModel: DogModel
+        let firebaseSignalingChannel: FirebaseSignalingChannel
+        
         @Published var dogs = Dogs.loading
     
         init () {
             self.dogModel = DogModel()
-            self.loadDogs()
+            self.firebaseSignalingChannel = FirebaseSignalingChannel()
+            self.loadDogsApi()
         }
         
-        func loadDogs() {
+        func loadDogsApi() {
             dogModel.getDogs(completionHandler: { dogs, error in
+                if let dogs = dogs {
+                    self.dogs = .result(dogs)
+                } else {
+                    self.dogs = .error(error?.localizedDescription ?? "error")
+                }
+            })
+        }
+        
+        func loadDogsFirebase() {
+            firebaseSignalingChannel.getDogs(completionHandler: {dogs, error in
                 if let dogs = dogs {
                     self.dogs = .result(dogs)
                 } else {
