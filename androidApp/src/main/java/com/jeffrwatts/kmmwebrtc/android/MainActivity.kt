@@ -6,9 +6,11 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.jeffrwatts.kmmwebrtc.DogModel
 import com.shepeliev.webrtckmp.MediaDevices
 import com.shepeliev.webrtckmp.MediaStream
 import com.shepeliev.webrtckmp.eglBaseContext
@@ -80,6 +82,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun onCameraAudioPermissionsGranted() {
         buttonStartStop.isEnabled = true
+        testDogsApi()
+    }
+
+    private fun testDogsApi() {
+        lifecycleScope.launch {
+            try {
+                val dogList = DogModel().getDogs()
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Got ${dogList.size} dogs via API", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception when getting Dogs via API.", e)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_AUDIO_PERMISSION_REQUEST_CODE && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            onCameraAudioPermissionsGranted()
+        } else {
+            Toast.makeText(this, "Camera Permission Denied", Toast.LENGTH_LONG).show()
+        }
     }
 }
 

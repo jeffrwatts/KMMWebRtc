@@ -14,11 +14,22 @@ struct ContentView: View {
         Button ("Stop Video") {
             viewModel.stopVideo()
         }
+        Button ("Run DogsApi") {
+            viewModel.loadDogsApi()
+        }
 	}
 }
 
 extension ContentView {
+    enum Dogs {
+        case loading
+        case result([Dog])
+        case error(String)
+    }
+    
     class ViewModel: ObservableObject {
+        @Published var dogs = Dogs.loading
+        private let dogModel = DogModel()
         private let mediaDevices = MediaDevicesCompanion()
         private var stream: MediaStream?
         var videoView = RTCMTLVideoView()
@@ -44,6 +55,16 @@ extension ContentView {
         func toggleCamera() {
             
         }
+        
+        func loadDogsApi() {
+            dogModel.getDogs(completionHandler: { dogs, error in
+                if let dogs = dogs {
+                    self.dogs = .result(dogs)
+                } else {
+                    self.dogs = .error(error?.localizedDescription ?? "error")
+                }
+            })
+        }
     }
 }
 
@@ -52,3 +73,5 @@ struct ContentView_Previews: PreviewProvider {
 		ContentView()
 	}
 }
+
+extension Dog: Identifiable{}
