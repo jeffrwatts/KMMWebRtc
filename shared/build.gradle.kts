@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.Framework
 plugins {
     kotlin("multiplatform")
     kotlin("native.cocoapods")
+    kotlin("plugin.serialization")
     id("com.android.library")
 }
 
@@ -41,25 +42,28 @@ kotlin {
                     }
                 }
                 api("com.shepeliev:webrtc-kmp:0.89.4")
-                //implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-                //implementation("io.ktor:ktor-client-core:1.6.7")
-                //implementation("io.ktor:ktor-client-serialization:1.6.7")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+                implementation("io.ktor:ktor-client-core:1.6.7")
+                implementation("io.ktor:ktor-client-serialization:1.6.7")
             }
         }
-        val commonTest by getting {
+        val androidMain by getting {
             dependencies {
-                implementation(kotlin("test-common"))
-                implementation(kotlin("test-annotations-common"))
+                implementation("io.ktor:ktor-client-android:1.6.7")
+                implementation("io.ktor:ktor-client-okhttp:1.6.7")
             }
         }
-        val androidMain by getting
         val androidTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
                 implementation("junit:junit:4.13.2")
             }
         }
-        val iosMain by getting
+        val iosMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-ios:1.6.7")
+            }
+        }
         val iosTest by getting
         //val iosX64Main by getting
         //val iosArm64Main by getting
