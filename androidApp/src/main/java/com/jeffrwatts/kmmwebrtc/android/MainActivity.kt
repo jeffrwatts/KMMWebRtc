@@ -11,6 +11,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.jeffrwatts.kmmwebrtc.DogModel
+import com.jeffrwatts.kmmwebrtc.FirebaseSignalingChannel
 import com.shepeliev.webrtckmp.MediaDevices
 import com.shepeliev.webrtckmp.MediaStream
 import com.shepeliev.webrtckmp.eglBaseContext
@@ -83,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     private fun onCameraAudioPermissionsGranted() {
         buttonStartStop.isEnabled = true
         testDogsApi()
+        testDogsFirebase()
     }
 
     private fun testDogsApi() {
@@ -94,6 +96,19 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Exception when getting Dogs via API.", e)
+            }
+        }
+    }
+
+    private fun testDogsFirebase() {
+        lifecycleScope.launch {
+            try {
+                val dogList = FirebaseSignalingChannel().getDogs()
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Got ${dogList.size} dogs via Firebase", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception when getting Dogs via Firebase.", e)
             }
         }
     }

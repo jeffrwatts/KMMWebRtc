@@ -17,6 +17,9 @@ struct ContentView: View {
         Button ("Run DogsApi") {
             viewModel.loadDogsApi()
         }
+        Button ("Run Dogs Firebase") {
+            viewModel.loadDogsFirebase()
+        }
 	}
 }
 
@@ -30,6 +33,7 @@ extension ContentView {
     class ViewModel: ObservableObject {
         @Published var dogs = Dogs.loading
         private let dogModel = DogModel()
+        private let firebaseSignalingChannel = FirebaseSignalingChannel()
         private let mediaDevices = MediaDevicesCompanion()
         private var stream: MediaStream?
         var videoView = RTCMTLVideoView()
@@ -58,6 +62,15 @@ extension ContentView {
         
         func loadDogsApi() {
             dogModel.getDogs(completionHandler: { dogs, error in
+                if let dogs = dogs {
+                    self.dogs = .result(dogs)
+                } else {
+                    self.dogs = .error(error?.localizedDescription ?? "error")
+                }
+            })
+        }
+        func loadDogsFirebase() {
+            firebaseSignalingChannel.getDogs(completionHandler: {dogs, error in
                 if let dogs = dogs {
                     self.dogs = .result(dogs)
                 } else {

@@ -45,6 +45,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-serialization:1.6.7")
+                implementation("dev.gitlive:firebase-firestore:1.4.3")
             }
         }
         val androidMain by getting {
