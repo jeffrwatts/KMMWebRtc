@@ -7,6 +7,7 @@ struct ContentView: View {
     private let viewModel = ViewModel()
 
 	var body: some View {
+        CameraView(videoView: viewModel.cameraVideo)
 		Text(greet)
         Button("Start Video") {
             viewModel.startVideo()
@@ -14,35 +15,33 @@ struct ContentView: View {
         Button ("Stop Video") {
             viewModel.stopVideo()
         }
-        Button ("Run DogsApi") {
-            viewModel.loadDogsApi()
-        }
-        Button ("Run Dogs Firebase") {
-            viewModel.loadDogsFirebase()
+        Button ("Toggle Camera") {
+            viewModel.toggleCamera()
         }
 	}
 }
 
-extension ContentView {
-    enum Dogs {
-        case loading
-        case result([Dog])
-        case error(String)
+struct CameraView : UIViewRepresentable {
+    var videoView: RTCEAGLVideoView
+    func updateUIView(_ uiView: UIViewType, context: Context) {
     }
-    
+    func makeUIView(context: Context) -> some RTCEAGLVideoView {
+        self.videoView.frame = CGRect()
+        return self.videoView
+    }
+}
+
+extension ContentView {
     class ViewModel: ObservableObject {
-        @Published var dogs = Dogs.loading
-        private let dogModel = DogModel()
-        private let firebaseSignalingChannel = FirebaseSignalingChannel()
+        @Published var cameraVideo = RTCEAGLVideoView()
         private let mediaDevices = MediaDevicesCompanion()
         private var stream: MediaStream?
-        var videoView = RTCMTLVideoView()
         
         func startVideo () {
             mediaDevices.getUserMedia(audio: false, video: true, completionHandler: { stream, error in
                 if let videoTrack = stream?.videoTracks.first {
                     self.stream = stream
-                    videoTrack.addRenderer(renderer: self.videoView)
+                    videoTrack.addRenderer(renderer: self.cameraVideo)
                 } else if let errorText = error?.localizedDescription {
                     NSLog("Local video error: \(errorText)")
                 } else {
@@ -52,31 +51,12 @@ extension ContentView {
         }
         
         func stopVideo () {
-            stream?.videoTracks.first?.removeRenderer(renderer: videoView)
+            stream?.videoTracks.first?.removeRenderer(renderer: cameraVideo)
             stream?.release()
         }
         
         func toggleCamera() {
-            
-        }
-        
-        func loadDogsApi() {
-            dogModel.getDogs(completionHandler: { dogs, error in
-                if let dogs = dogs {
-                    self.dogs = .result(dogs)
-                } else {
-                    self.dogs = .error(error?.localizedDescription ?? "error")
-                }
-            })
-        }
-        func loadDogsFirebase() {
-            firebaseSignalingChannel.getDogs(completionHandler: {dogs, error in
-                if let dogs = dogs {
-                    self.dogs = .result(dogs)
-                } else {
-                    self.dogs = .error(error?.localizedDescription ?? "error")
-                }
-            })
+            stream?.videoTracks.forEach { $0.switchCamera(deviceId: nil, completionHandler: {_, _ in }) }
         }
     }
 }
@@ -86,5 +66,3 @@ struct ContentView_Previews: PreviewProvider {
 		ContentView()
 	}
 }
-
-extension Dog: Identifiable{}
