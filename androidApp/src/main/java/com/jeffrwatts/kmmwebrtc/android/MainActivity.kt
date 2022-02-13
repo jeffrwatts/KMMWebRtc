@@ -1,20 +1,85 @@
 package com.jeffrwatts.kmmwebrtc.android
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import com.jeffrwatts.kmmwebrtc.Greeting
-import android.widget.TextView
-
-fun greet(): String {
-    return Greeting().greeting()
-}
+import android.util.Log
+import android.widget.Button
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.shepeliev.webrtckmp.MediaDevices
+import com.shepeliev.webrtckmp.MediaStream
+import com.shepeliev.webrtckmp.eglBaseContext
+import com.shepeliev.webrtckmp.initializeWebRtc
+import kotlinx.coroutines.launch
+import org.webrtc.SurfaceViewRenderer
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val CAMERA_AUDIO_PERMISSION_REQUEST_CODE = 1
+    }
+
+    private var localMediaStream: MediaStream? = null
+    private val buttonStartStop: Button by lazy { findViewById(R.id.buttonStartStop) }
+    private val buttonToggleCamera: Button by lazy { findViewById(R.id.buttonToggleCamera) }
+    private val surfaceViewLocalVideo: SurfaceViewRenderer by lazy { findViewById(R.id.surfaceViewLocalVideo) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val tv: TextView = findViewById(R.id.text_view)
-        tv.text = greet()
+        initializeWebRtc(this)
+
+        buttonStartStop.isEnabled = false
+        buttonStartStop.setOnClickListener {
+            if (localMediaStream != null) {
+                stopVideo()
+            } else {
+                startVideoAsync()
+            }
+        }
+        buttonToggleCamera.isEnabled = false
+        buttonToggleCamera.setOnClickListener {
+            lifecycleScope.launch { localMediaStream?.videoTracks?.firstOrNull()?.switchCamera() }
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), CAMERA_AUDIO_PERMISSION_REQUEST_CODE)
+        } else {
+            onCameraAudioPermissionsGranted()
+        }
+    }
+
+    private fun startVideoAsync() = lifecycleScope.launchWhenStarted{
+        try {
+            localMediaStream = MediaDevices.getUserMedia(video = true)
+            localMediaStream?.videoTracks?.firstOrNull()?.also {
+                surfaceViewLocalVideo.init(eglBaseContext, null)
+                it.addSink(surfaceViewLocalVideo)
+            }
+            runOnUiThread {
+                buttonStartStop.text = "Stop Video"
+                buttonToggleCamera.isEnabled = true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception", e)
+        }
+    }
+
+    private fun stopVideo() {
+        surfaceViewLocalVideo.release()
+        localMediaStream?.release()
+        localMediaStream = null
+        buttonStartStop.text = "Start Video"
+        buttonToggleCamera.isEnabled = false
+    }
+
+    private fun onCameraAudioPermissionsGranted() {
+        buttonStartStop.isEnabled = true
     }
 }
+
