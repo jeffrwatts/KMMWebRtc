@@ -3,12 +3,11 @@ import shared
 import WebRTC
 
 struct ContentView: View {
-	let greet = Greeting().greeting()
     private let viewModel = ViewModel()
 
 	var body: some View {
         CameraView(videoView: viewModel.cameraVideo)
-		Text(greet)
+
         Button("Start Video") {
             viewModel.startVideo()
         }

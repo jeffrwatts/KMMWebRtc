@@ -10,12 +10,8 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.jeffrwatts.kmmwebrtc.DogModel
-import com.jeffrwatts.kmmwebrtc.FirebaseSignalingChannel
-import com.shepeliev.webrtckmp.MediaDevices
-import com.shepeliev.webrtckmp.MediaStream
-import com.shepeliev.webrtckmp.eglBaseContext
-import com.shepeliev.webrtckmp.initializeWebRtc
+import com.jeffrwatts.kmmwebrtc.RtcClient
+import com.shepeliev.webrtckmp.*
 import kotlinx.coroutines.launch
 import org.webrtc.SurfaceViewRenderer
 
@@ -25,29 +21,82 @@ class MainActivity : AppCompatActivity() {
         private const val CAMERA_AUDIO_PERMISSION_REQUEST_CODE = 1
     }
 
-    private var localMediaStream: MediaStream? = null
-    private val buttonStartStop: Button by lazy { findViewById(R.id.buttonStartStop) }
-    private val buttonToggleCamera: Button by lazy { findViewById(R.id.buttonToggleCamera) }
+    private val buttonLocalStartVideo: Button by lazy { findViewById(R.id.buttonLocalStartVideo) }
+    private val buttonLocalToggle: Button by lazy { findViewById(R.id.buttonLocalToggle) }
+    private val buttonCallLocal: Button by lazy { findViewById(R.id.buttonCallLocal) }
+    private val buttonAnswerLoopback: Button by lazy { findViewById(R.id.buttonAnswerLoopback) }
     private val surfaceViewLocalVideo: SurfaceViewRenderer by lazy { findViewById(R.id.surfaceViewLocalVideo) }
+    private val surfaceViewLoopBackRemote: SurfaceViewRenderer by lazy { findViewById(R.id.surfaceViewLoopBackRemote) }
+
+    private lateinit var rtcClientLocal: RtcClient
+    private var localMediaStream: MediaStream? = null
+
+    private lateinit var rtcClientLoopback: RtcClient
+    private var offerFromLocal: SessionDescription? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // TODO There is a bug when getting permissions.  Need to move all of the WebRtc stuff until
+        // after permissions have been granted.
         initializeWebRtc(this)
 
-        buttonStartStop.isEnabled = false
-        buttonStartStop.setOnClickListener {
+        // Set up Local Client.
+        rtcClientLocal = RtcClient("local", "loopback")
+        rtcClientLocal.onIceCandidateLoopbackHack = { iceCandidate->
+            rtcClientLoopback.loopbackHackAddIceCandidate(iceCandidate)
+        }
+
+        // Set up Loopback Client.
+        rtcClientLoopback = RtcClient("loopback", "local")
+        rtcClientLoopback.onIceCandidateLoopbackHack = { iceCandidate ->
+            rtcClientLocal.loopbackHackAddIceCandidate(iceCandidate)
+        }
+
+        rtcClientLoopback.onIncomingCall = { offer ->
+            offerFromLocal = offer
+            runOnUiThread {
+                buttonAnswerLoopback.isEnabled = true
+                Toast.makeText(this, "Incoming Call from (Local)", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        rtcClientLoopback.onRemoteVideoTrack = { videoStreamTrack ->
+            videoStreamTrack.addSink(surfaceViewLoopBackRemote)
+        }
+
+        buttonLocalStartVideo.isEnabled = false
+        buttonLocalStartVideo.setOnClickListener {
             if (localMediaStream != null) {
                 stopVideo()
             } else {
-                startVideoAsync()
+                startVideo()
             }
         }
-        buttonToggleCamera.isEnabled = false
-        buttonToggleCamera.setOnClickListener {
+
+        buttonLocalToggle.isEnabled = false
+        buttonLocalToggle.setOnClickListener {
             lifecycleScope.launch { localMediaStream?.videoTracks?.firstOrNull()?.switchCamera() }
         }
+
+        buttonCallLocal.isEnabled = false
+        buttonCallLocal.setOnClickListener {
+            buttonCallLocal.isEnabled = false
+            makeCall()
+        }
+
+        buttonAnswerLoopback.isEnabled = false
+        buttonAnswerLoopback.setOnClickListener {
+            offerFromLocal?.let {
+                buttonAnswerLoopback.isEnabled = false
+                answerCall()
+            }
+        }
+
+        // Initialize local and loopback video surfaces.
+        surfaceViewLocalVideo.init(eglBaseContext, null)
+        surfaceViewLoopBackRemote.init(eglBaseContext, null)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
             || ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -57,16 +106,35 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startVideoAsync() = lifecycleScope.launchWhenStarted{
+    private fun startVideo() = lifecycleScope.launch {
         try {
             localMediaStream = MediaDevices.getUserMedia(video = true)
-            localMediaStream?.videoTracks?.firstOrNull()?.also {
-                surfaceViewLocalVideo.init(eglBaseContext, null)
-                it.addSink(surfaceViewLocalVideo)
+            localMediaStream?.videoTracks?.firstOrNull()?.also { videoStreamtrack->
+                videoStreamtrack.addSink(surfaceViewLocalVideo)
+                rtcClientLocal.setLocalVideoTrack(videoStreamtrack)
             }
             runOnUiThread {
-                buttonStartStop.text = "Stop Video"
-                buttonToggleCamera.isEnabled = true
+                buttonLocalStartVideo.text = "Stop Video"
+                buttonLocalToggle.isEnabled = true
+                buttonCallLocal.isEnabled = true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception", e)
+        }
+    }
+
+    private fun makeCall() = lifecycleScope.launch {
+        try {
+            rtcClientLocal.makeCall(receiveVideo = true, receiveAudio = false)
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception", e)
+        }
+    }
+
+    private fun answerCall() = lifecycleScope.launch {
+        try {
+            offerFromLocal?.let {
+                rtcClientLoopback.answerCall(it, receiveVideo = true, receiveAudio = false)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception", e)
@@ -77,40 +145,10 @@ class MainActivity : AppCompatActivity() {
         surfaceViewLocalVideo.release()
         localMediaStream?.release()
         localMediaStream = null
-        buttonStartStop.text = "Start Video"
-        buttonToggleCamera.isEnabled = false
     }
 
     private fun onCameraAudioPermissionsGranted() {
-        buttonStartStop.isEnabled = true
-        testDogsApi()
-        testDogsFirebase()
-    }
-
-    private fun testDogsApi() {
-        lifecycleScope.launch {
-            try {
-                val dogList = DogModel().getDogs()
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Got ${dogList.size} dogs via API", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception when getting Dogs via API.", e)
-            }
-        }
-    }
-
-    private fun testDogsFirebase() {
-        lifecycleScope.launch {
-            try {
-                val dogList = FirebaseSignalingChannel().getDogs()
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Got ${dogList.size} dogs via Firebase", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception when getting Dogs via Firebase.", e)
-            }
-        }
+        buttonLocalStartVideo.isEnabled = true
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

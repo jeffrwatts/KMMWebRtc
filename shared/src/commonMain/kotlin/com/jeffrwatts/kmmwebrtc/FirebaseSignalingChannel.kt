@@ -1,27 +1,60 @@
 package com.jeffrwatts.kmmwebrtc
 
+import com.shepeliev.webrtckmp.IceCandidate
+import com.shepeliev.webrtckmp.SessionDescription
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
-class FirebaseSignalingChannel {
-    suspend fun getDogs (): List<Dog> {
-        return buildList<Dog> {
-            Firebase.firestore.collection("dogs").get().documents.forEach {
-                add(Dog(it.id))
-            }
-        }
+
+class FirebaseSignalingChannel (private val self: String, private val recipient: String) {
+    companion object {
+        const val session = "session"
+        const val iceCandidates = "iceCandidates"
     }
 
-    fun observeDog(dog: Dog) : Flow<String> {
-        return Firebase.firestore.collection("dogs").document(dog.name).snapshots
+    suspend fun sendIceCandidate(iceCandidate: IceCandidate) {
+        val candidate = hashMapOf(
+            "candidate" to iceCandidate.candidate,
+            "sdpMid" to iceCandidate.sdpMid,
+            "sdpMLineIndex" to iceCandidate.sdpMLineIndex
+        )
+        Firebase.firestore.collection(session)
+            .document(recipient)
+            .collection(iceCandidates)
+            .document
+            .set(candidate)
+    }
+
+    suspend fun sendSessionDescription(sessionDescription: SessionDescription) {
+        val sessionDesc = hashMapOf(
+            "type" to sessionDescription.type,
+            "sdp" to sessionDescription.sdp
+        )
+        Firebase.firestore.collection(session)
+            .document(recipient)
+            .set(sessionDesc)
+    }
+
+    fun onSessionDescription(): Flow<SessionDescription> {
+        return Firebase.firestore.collection(session).document(self).snapshots
             .filterNot { it.metadata.isFromCache }
-            .filter { it.contains("breed") }
+            .filter { it.contains("type") && it.contains("sdp") }
             .map {
-                it.get("breed")
+                SessionDescription(it.get("type"), it.get("sdp"))
             }
+    }
+
+    fun onIceCandidate(): Flow<IceCandidate> {
+        return flow<IceCandidate> {
+            Firebase.firestore.collection(session).document(self).collection(iceCandidates).snapshots
+                .filterNot { it.metadata.isFromCache }
+                .onEach {
+                    it.documents.forEach {
+                }
+            }
+        }
     }
 }
