@@ -29,7 +29,7 @@ kotlin {
             .filterIsInstance<Framework>()
             .forEach {
                 it.transitiveExport = true
-                it.export("com.shepeliev:webrtc-kmp:0.89.4")
+                it.export("com.shepeliev:webrtc-kmp:0.89.6")
             }
     }
     
@@ -41,7 +41,7 @@ kotlin {
                         strictly("1.6.0-native-mt")
                     }
                 }
-                api("com.shepeliev:webrtc-kmp:0.89.4")
+                api("com.shepeliev:webrtc-kmp:0.89.6")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-serialization:1.6.7")

@@ -38,34 +38,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // TODO There is a bug when getting permissions.  Need to move all of the WebRtc stuff until
-        // after permissions have been granted.
-        initializeWebRtc(this)
-
-        // Set up Local Client.
-        rtcClientLocal = RtcClient("local", "loopback")
-        rtcClientLocal.onIceCandidateLoopbackHack = { iceCandidate->
-            rtcClientLoopback.loopbackHackAddIceCandidate(iceCandidate)
-        }
-
-        // Set up Loopback Client.
-        rtcClientLoopback = RtcClient("loopback", "local")
-        rtcClientLoopback.onIceCandidateLoopbackHack = { iceCandidate ->
-            rtcClientLocal.loopbackHackAddIceCandidate(iceCandidate)
-        }
-
-        rtcClientLoopback.onIncomingCall = { offer ->
-            offerFromLocal = offer
-            runOnUiThread {
-                buttonAnswerLoopback.isEnabled = true
-                Toast.makeText(this, "Incoming Call from (Local)", Toast.LENGTH_LONG).show()
-            }
-        }
-
-        rtcClientLoopback.onRemoteVideoTrack = { videoStreamTrack ->
-            videoStreamTrack.addSink(surfaceViewLoopBackRemote)
-        }
-
         buttonLocalStartVideo.isEnabled = false
         buttonLocalStartVideo.setOnClickListener {
             if (localMediaStream != null) {
@@ -88,15 +60,9 @@ class MainActivity : AppCompatActivity() {
 
         buttonAnswerLoopback.isEnabled = false
         buttonAnswerLoopback.setOnClickListener {
-            offerFromLocal?.let {
-                buttonAnswerLoopback.isEnabled = false
-                answerCall()
-            }
+            buttonAnswerLoopback.isEnabled = false
+            answerCall()
         }
-
-        // Initialize local and loopback video surfaces.
-        surfaceViewLocalVideo.init(eglBaseContext, null)
-        surfaceViewLoopBackRemote.init(eglBaseContext, null)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
             || ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -148,7 +114,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onCameraAudioPermissionsGranted() {
+        initializeWebRtc(this)
+
         buttonLocalStartVideo.isEnabled = true
+
+        rtcClientLocal = RtcClient("local", "loopback")
+        rtcClientLoopback = RtcClient("loopback", "local")
+
+        rtcClientLoopback.onIncomingCall = { offer ->
+            offerFromLocal = offer
+            runOnUiThread {
+                buttonAnswerLoopback.isEnabled = true
+                Toast.makeText(this, "Incoming Call from (Local)", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        rtcClientLoopback.onRemoteVideoTrack = { videoStreamTrack ->
+            videoStreamTrack.addSink(surfaceViewLoopBackRemote)
+        }
+
+        // Initialize local and loopback video surfaces.
+        surfaceViewLocalVideo.init(eglBaseContext, null)
+        surfaceViewLoopBackRemote.init(eglBaseContext, null)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

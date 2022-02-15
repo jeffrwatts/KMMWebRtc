@@ -19,21 +19,16 @@ class RtcClient (private val self: String, private val recipient: String) {
     private var signalingChannel: FirebaseSignalingChannel = FirebaseSignalingChannel(self, recipient)
     private var coroutineScope = CoroutineScope(Dispatchers.Default)
 
-    // HACK - No way to currently deserialize IceCandidate, so can only have loop back use case currently.
-    var onIceCandidateLoopbackHack: (IceCandidate) -> Unit = {}
-    fun loopbackHackAddIceCandidate(iceCandidate: IceCandidate) {
-        peerConnection.addIceCandidate(iceCandidate)
-    }
-    // ======================================
-
     init {
         // Signaling Channel Callbacks.
         signalingChannel.onSessionDescription().onEach {
             onSessionDescription(it)
         }.launchIn(coroutineScope)
-        //signalingChannel.onIceCandidate().onEach {
-        //    onIceCandidate(it)
-        //}.launchIn(coroutineScope)
+        signalingChannel.onIceCandidate().onEach {
+            it.forEach {
+                onIceCandidate(it)
+            }
+        }.launchIn(coroutineScope)
 
         // Set up Peer Connection
         val rtcConfiguration = RtcConfiguration()
@@ -41,7 +36,6 @@ class RtcClient (private val self: String, private val recipient: String) {
 
         peerConnection.onIceCandidate.onEach {
             signalingChannel.sendIceCandidate(it)
-            onIceCandidateLoopbackHack(it)
         }.launchIn(coroutineScope)
 
         peerConnection.onTrack.onEach { trackEvent->

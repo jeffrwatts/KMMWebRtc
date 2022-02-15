@@ -47,14 +47,21 @@ class FirebaseSignalingChannel (private val self: String, private val recipient:
             }
     }
 
-    fun onIceCandidate(): Flow<IceCandidate> {
-        return flow<IceCandidate> {
-            Firebase.firestore.collection(session).document(self).collection(iceCandidates).snapshots
-                .filterNot { it.metadata.isFromCache }
-                .onEach {
+    fun onIceCandidate(): Flow<List<IceCandidate>> {
+        return Firebase.firestore.collection(session).document(self)
+            .collection(iceCandidates).snapshots
+            .filterNot { it.metadata.isFromCache }
+            .map {
+                buildList {
                     it.documents.forEach {
+                        if (it.contains("candidate") && it.contains("sdpMid") && it.contains("sdpMLineIndex")) {
+                            val candidate = it.get<String>("candidate")
+                            val sdpMid = it.get<String>("sdpMid")
+                            val sdpMLineIndex = it.get<Int>("sdpMLineIndex")
+                            add(IceCandidate(candidate = candidate, sdpMid = sdpMid, sdpMLineIndex = sdpMLineIndex))
+                        }
+                    }
                 }
             }
-        }
     }
 }
