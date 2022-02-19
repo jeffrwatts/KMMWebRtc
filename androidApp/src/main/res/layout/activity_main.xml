@@ -7,76 +7,76 @@
     android:layout_height="match_parent">
 
     <org.webrtc.SurfaceViewRenderer
-        android:id="@+id/surfaceViewLocalVideo"
+        android:id="@+id/surfaceViewRemoteVideo"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="16dp"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/surfaceViewLoopBackRemote"
+        app:layout_constraintBottom_toTopOf="@+id/surfaceViewLocalVideo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <org.webrtc.SurfaceViewRenderer
-        android:id="@+id/surfaceViewLoopBackRemote"
+        android:id="@+id/surfaceViewLocalVideo"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="16dp"
-        app:layout_constraintBottom_toTopOf="@+id/buttonLocalStartVideo"
+        app:layout_constraintBottom_toTopOf="@+id/buttonStartVideo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/surfaceViewLocalVideo" />
+        app:layout_constraintTop_toBottomOf="@+id/surfaceViewRemoteVideo" />
 
     <Button
-        android:id="@+id/buttonLocalStartVideo"
+        android:id="@+id/buttonStartVideo"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="Start Video (Local)"
-        app:layout_constraintBottom_toTopOf="@+id/buttonLocalToggle"
+        android:text="Start Video"
+        app:layout_constraintBottom_toTopOf="@+id/buttonToggleCamera"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/buttonLocalToggle"
+        android:id="@+id/buttonToggleCamera"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="Toggle (Local)"
-        app:layout_constraintBottom_toTopOf="@+id/buttonCallLocal"
+        android:text="Toggle Camera"
+        app:layout_constraintBottom_toTopOf="@+id/buttonMakeCall"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/buttonCallLocal"
+        android:id="@+id/buttonMakeCall"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="Call (Local)"
-        app:layout_constraintBottom_toTopOf="@+id/buttonAnswerLoopback"
+        android:text="Make Call"
+        app:layout_constraintBottom_toTopOf="@+id/buttonAnswerCall"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/buttonAnswerLoopback"
+        android:id="@+id/buttonAnswerCall"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="Answer (Loopback)"
+        android:text="Answer Call"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

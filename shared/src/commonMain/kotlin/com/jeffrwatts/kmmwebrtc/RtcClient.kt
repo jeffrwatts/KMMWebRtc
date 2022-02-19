@@ -17,7 +17,7 @@ class RtcClient (private val self: String, private val recipient: String) {
 
     private val peerConnection: PeerConnection
     private var signalingChannel: FirebaseSignalingChannel = FirebaseSignalingChannel(self, recipient)
-    private var coroutineScope = CoroutineScope(Dispatchers.Default)
+    private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
     init {
         // Signaling Channel Callbacks.

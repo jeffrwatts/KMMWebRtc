@@ -21,25 +21,23 @@ class MainActivity : AppCompatActivity() {
         private const val CAMERA_AUDIO_PERMISSION_REQUEST_CODE = 1
     }
 
-    private val buttonLocalStartVideo: Button by lazy { findViewById(R.id.buttonLocalStartVideo) }
-    private val buttonLocalToggle: Button by lazy { findViewById(R.id.buttonLocalToggle) }
-    private val buttonCallLocal: Button by lazy { findViewById(R.id.buttonCallLocal) }
-    private val buttonAnswerLoopback: Button by lazy { findViewById(R.id.buttonAnswerLoopback) }
+    private val buttonStartVideo: Button by lazy { findViewById(R.id.buttonStartVideo) }
+    private val buttonToggleCamera: Button by lazy { findViewById(R.id.buttonToggleCamera) }
+    private val buttonMakeCall: Button by lazy { findViewById(R.id.buttonMakeCall) }
+    private val buttonAnswerCall: Button by lazy { findViewById(R.id.buttonAnswerCall) }
+    private val surfaceViewRemoteVideo: SurfaceViewRenderer by lazy { findViewById(R.id.surfaceViewRemoteVideo) }
     private val surfaceViewLocalVideo: SurfaceViewRenderer by lazy { findViewById(R.id.surfaceViewLocalVideo) }
-    private val surfaceViewLoopBackRemote: SurfaceViewRenderer by lazy { findViewById(R.id.surfaceViewLoopBackRemote) }
 
-    private lateinit var rtcClientLocal: RtcClient
+    private lateinit var rtcClient: RtcClient
     private var localMediaStream: MediaStream? = null
-
-    private lateinit var rtcClientLoopback: RtcClient
-    private var offerFromLocal: SessionDescription? = null
+    private var receivedOffer: SessionDescription? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        buttonLocalStartVideo.isEnabled = false
-        buttonLocalStartVideo.setOnClickListener {
+        buttonStartVideo.isEnabled = false
+        buttonStartVideo.setOnClickListener {
             if (localMediaStream != null) {
                 stopVideo()
             } else {
@@ -47,20 +45,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        buttonLocalToggle.isEnabled = false
-        buttonLocalToggle.setOnClickListener {
+        buttonToggleCamera.isEnabled = false
+        buttonToggleCamera.setOnClickListener {
             lifecycleScope.launch { localMediaStream?.videoTracks?.firstOrNull()?.switchCamera() }
         }
 
-        buttonCallLocal.isEnabled = false
-        buttonCallLocal.setOnClickListener {
-            buttonCallLocal.isEnabled = false
+        buttonMakeCall.isEnabled = false
+        buttonMakeCall.setOnClickListener {
+            buttonMakeCall.isEnabled = false
             makeCall()
         }
 
-        buttonAnswerLoopback.isEnabled = false
-        buttonAnswerLoopback.setOnClickListener {
-            buttonAnswerLoopback.isEnabled = false
+        buttonAnswerCall.isEnabled = false
+        buttonAnswerCall.setOnClickListener {
+            buttonAnswerCall.isEnabled = false
             answerCall()
         }
 
@@ -77,12 +75,12 @@ class MainActivity : AppCompatActivity() {
             localMediaStream = MediaDevices.getUserMedia(video = true)
             localMediaStream?.videoTracks?.firstOrNull()?.also { videoStreamtrack->
                 videoStreamtrack.addSink(surfaceViewLocalVideo)
-                rtcClientLocal.setLocalVideoTrack(videoStreamtrack)
+                rtcClient.setLocalVideoTrack(videoStreamtrack)
             }
             runOnUiThread {
-                buttonLocalStartVideo.text = "Stop Video"
-                buttonLocalToggle.isEnabled = true
-                buttonCallLocal.isEnabled = true
+                buttonStartVideo.text = "Stop Video"
+                buttonToggleCamera.isEnabled = true
+                buttonMakeCall.isEnabled = true
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception", e)
@@ -91,7 +89,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun makeCall() = lifecycleScope.launch {
         try {
-            rtcClientLocal.makeCall(receiveVideo = true, receiveAudio = false)
+            rtcClient.makeCall(receiveVideo = true, receiveAudio = false)
         } catch (e: Exception) {
             Log.e(TAG, "Exception", e)
         }
@@ -99,8 +97,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun answerCall() = lifecycleScope.launch {
         try {
-            offerFromLocal?.let {
-                rtcClientLoopback.answerCall(it, receiveVideo = true, receiveAudio = false)
+            receivedOffer?.let {
+                rtcClient.answerCall(it, receiveVideo = true, receiveAudio = false)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception", e)
@@ -116,26 +114,25 @@ class MainActivity : AppCompatActivity() {
     private fun onCameraAudioPermissionsGranted() {
         initializeWebRtc(this)
 
-        buttonLocalStartVideo.isEnabled = true
+        buttonStartVideo.isEnabled = true
 
-        rtcClientLocal = RtcClient("local", "loopback")
-        rtcClientLoopback = RtcClient("loopback", "local")
+        rtcClient = RtcClient("android", "ios")
 
-        rtcClientLoopback.onIncomingCall = { offer ->
-            offerFromLocal = offer
+        rtcClient.onIncomingCall = { offer ->
+            receivedOffer = offer
             runOnUiThread {
-                buttonAnswerLoopback.isEnabled = true
+                buttonAnswerCall.isEnabled = true
                 Toast.makeText(this, "Incoming Call from (Local)", Toast.LENGTH_LONG).show()
             }
         }
 
-        rtcClientLoopback.onRemoteVideoTrack = { videoStreamTrack ->
-            videoStreamTrack.addSink(surfaceViewLoopBackRemote)
+        rtcClient.onRemoteVideoTrack = { videoStreamTrack ->
+            videoStreamTrack.addSink(surfaceViewRemoteVideo)
         }
 
         // Initialize local and loopback video surfaces.
         surfaceViewLocalVideo.init(eglBaseContext, null)
-        surfaceViewLoopBackRemote.init(eglBaseContext, null)
+        surfaceViewRemoteVideo.init(eglBaseContext, null)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

@@ -2,6 +2,7 @@ package com.jeffrwatts.kmmwebrtc
 
 import com.shepeliev.webrtckmp.IceCandidate
 import com.shepeliev.webrtckmp.SessionDescription
+import com.shepeliev.webrtckmp.SessionDescriptionType
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.flow.*
@@ -29,8 +30,16 @@ class FirebaseSignalingChannel (private val self: String, private val recipient:
     }
 
     suspend fun sendSessionDescription(sessionDescription: SessionDescription) {
+        // Need to explicitly break out into a String due to Serialization
+        // error on iOS.
+        val type = when (sessionDescription.type) {
+            SessionDescriptionType.Offer -> "Offer"
+            SessionDescriptionType.Answer -> "Answer"
+            else -> ""
+        }
+
         val sessionDesc = hashMapOf(
-            "type" to sessionDescription.type,
+            "type" to type,
             "sdp" to sessionDescription.sdp
         )
         Firebase.firestore.collection(session)
@@ -43,7 +52,13 @@ class FirebaseSignalingChannel (private val self: String, private val recipient:
             .filterNot { it.metadata.isFromCache }
             .filter { it.contains("type") && it.contains("sdp") }
             .map {
-                SessionDescription(it.get("type"), it.get("sdp"))
+                // Assume Offer, unless its Answer.
+                var type = SessionDescriptionType.Offer
+                if (it.get<String>("type").contentEquals("Answer")) {
+                    type = SessionDescriptionType.Answer
+                }
+
+                SessionDescription(type, it.get("sdp"))
             }
     }
 
