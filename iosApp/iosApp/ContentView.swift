@@ -9,21 +9,13 @@ struct ContentView: View {
         CameraView(videoView: viewModel.remoteVideo)
         CameraView(videoView: viewModel.localVideo)
 
-        Button("Start Video") {
-            viewModel.startVideo()
-        }
-        Button("Stop Video") {
-            viewModel.stopVideo()
-        }
-        Button ("Toggle Camera") {
-            viewModel.toggleCamera()
-        }
-        Button ("Call") {
-            viewModel.call()
-        }
-        Button ("Answer") {
-            viewModel.answer()
-        }
+        VStack {
+            Button("Start Video", action:{viewModel.startVideo()})
+            Button("Stop Video", action: {viewModel.stopVideo()})
+            Button("Toggle Camera", action: {viewModel.toggleCamera()})
+            Button("Call", action: {viewModel.call()})
+            Button("Answer", action: {viewModel.answer()})
+        }.buttonStyle(.bordered)
 	}
 }
 
